@@ -1,0 +1,41 @@
+ '此标准模块内存放用到的全局变量
+ Type Hero
+    Hp As Integer
+    AT As Integer
+    DF As Integer
+    Coin As Integer
+    X As Single
+    Y As Single
+End Type
+
+Type Monster
+    Name As String
+    Hp As Integer
+    AT As Integer
+    DF As Integer
+    Coin As Integer
+End Type
+
+Type Key
+    YollowKey As Integer
+    BlueKey As Integer
+    RedKey As Integer
+End Type
+
+Public Map(1 To 9, 1 To 9) As Integer
+Public MapBox(0 To 100) As Variant
+
+
+Public Floor As Integer
+
+Public NewX, NewY As Integer
+Public NewFloor As Integer
+
+Public Hero As Hero
+Public Moster As Monster
+Public Key As Key
+
+Public MonsterBox(100 To 150) As Monster
+
+Public Buy As Integer
+Public Mark As Integer
