@@ -1,0 +1,398 @@
+'本程序使用VB98模仿《魔塔》实现了地图、角色、移动、对战、存档等功能，代码为手头现有版本，非完善版。窗口布局暂无。
+Private Sub Form_Load()
+For i = 0 To 100 '初始化地图盒，存放每一层的地图
+    MapBox(i) = Map()
+Next i
+Floor = 1
+NewFloor = Floor
+'-----------------------------楼层数据-----------------------------------------------------------
+Dim map1, map2, map3 As String
+'地图为9*9的数组，对应9*9的image控件数组，每个数字代表一个图形
+map1 = "2,2,2,2,2,2,2,2,2;2,0,1,1,202,1,2,300,2;2,1,300,1,205,1,202,1,2;2,1,1,1,2,1,2,1,2;2,202,1,1,204,1,2,1,2;2,204,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;"
+map2 = "2,2,2,2,2,2,2,2,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;"
+map3 = "2,2,2,2,2,2,2,2,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;2,1,1,1,2,1,2,1,2;"
+Call SubChangeMap(1, map1) '将1层字串地图数据写入地图盒1层的数组中
+Hero.X = 2
+Hero.Y = 2
+NewX = Hero.X
+NewY = Hero.Y
+Call SubDrawMap '按照地图数据在排列好的image控件中显示图形
+Hero.Hp = 1000 '初始化数值
+Hero.AT = 100
+Hero.DF = 100
+Hero.Coin = 0
+Key.YollowKey = 0
+Key.BlueKey = 0
+Key.RedKey = 0
+Call SubShowData
+End Sub
+
+Public Sub SubDrawMap()
+For Y = 1 To 9
+    For X = 1 To 9
+        Set Image1(10 * X + Y).Picture = ImageList1.ListImages("图片" & MapBox(Floor)(X, Y)).Picture
+    Next X
+Next Y
+End Sub
+
+Private Sub Form_keydown(keycode As Integer, shift As Integer) '接收键盘事件，按照按下方向键使人物前进一格，判断进入此格会发生的事件，进入
+Select Case keycode                                            '相应的处理函数
+Case 38
+    NewX = Hero.X - 1
+    NewY = Hero.Y
+Case 37
+    NewX = Hero.X
+    NewY = Hero.Y - 1
+Case 40
+    NewX = Hero.X + 1
+    NewY = Hero.Y
+Case 39
+    NewX = Hero.X
+    NewY = Hero.Y + 1
+End Select
+If NewX Mod 10 <> 0 And NewY Mod 10 <> 0 Then
+Call SubMove
+End If
+End Sub
+Public Sub SubMove()
+Select Case MapBox(Floor)(NewX, NewY)
+Case 1
+    Call SubWalk
+Case 3
+    Set Image1(10 * NewX + NewY).Picture = ImageList1.ListImages("图片1")
+Case 100 To 150
+    Call SubCompet
+Case 200 To 201
+    Call SubGetMedicine '获得药水
+Case 202 To 203
+    Call SubGetCrystal '获得宝石
+Case 204 To 206
+    Call SubGetKey '获得钥匙
+Case 300 To 302
+    Call SubOpenDoor '开门
+Case 5 To 6
+    Call SubUpDownStair '上楼下楼
+'Case 400 To 410
+'    Call SubGetEquip '获得宝剑和盾牌
+End Select
+End Sub
+
+Public Sub SubWalk()
+Set Image1(10 * NewX + NewY).Picture = ImageList1.ListImages("图片0").Picture  '绘制下一格
+MapBox(Floor)(NewX, NewY) = 0
+Set Image1(10 * Hero.X + Hero.Y).Picture = ImageList1.ListImages("图片1").Picture  '绘制上一格
+MapBox(Floor)(Hero.X, Hero.Y) = 1
+Hero.X = NewX
+Hero.Y = NewY
+End Sub
+Private Sub SubUpDownStair()
+If MapBox(Floor)(NewX, NewY) = 5 Then '上楼
+    NewFloor = Floor + 1
+Else
+    NewFloor = Floor - 1
+End If
+
+If MapBox(NewFloor)(NewX + 1, NewY) = 1 Then
+NewX = NewX + 1
+ElseIf MapBox(NewFloor)(NewX, NewY + 1) = 1 Then
+    NewY = NewY + 1
+ElseIf MapBox(NewFloor)(NewX, NewY - 1) = 1 Then
+    NewY = NewY - 1
+ElseIf MapBox(NewFloor)(NewX - 1, NewY) = 1 Then
+    NewX = NewX - 1
+End If
+Call SubChangeMapFloor
+Call SubDrawMap
+    
+    
+
+End Sub
+Private Sub SubChangeMapFloor()
+MapBox(Floor)(Hero.X, Hero.Y) = 1
+MapBox(Floor)(NewX, NewY) = 0
+Floor = NewFloor
+Hero.X = NewX
+Hero.Y = NewY
+End Sub
+
+Private Sub SubCompet()
+Call SubGetMonsterData
+If Hero.AT <= Monster.DF Then
+    Label1.Caption = "不可攻击"
+ElseIf HeroAT <= MonsterDF Then
+    Timer1.Interval = 200
+    Hero.Coin = Hero.Coin = Monster.Coin
+    Call SubWalk
+ElseIf Hero.Hp \ (Monster.AT = Hero.DF) + 1 >= Monster.Hp \ (Hero.AT - Monster.DF) Then
+    Timer1.Interval = 200
+    Hero.Coin = Hero.Coin + Monster.Coin
+    Call SubWalk
+Else
+    Label1.Caption = "不可攻击"
+End If
+End Sub
+Private Sub SunGetMedicine()
+If MapBox(Floor)(NewX, NewY) = 200 Then
+    Hero.Hp = Hero.Hp + 50 * (Floor \ 10 + 1)
+Else
+    Hero.Hp = Hero.Hp + 100 * (Floor \ 10 + 1)
+End If
+Label2.Caption = Hero.Hp
+Call SubWalk
+End Sub
+Private Sub SubGetCrystal()
+If MapBox(Floor)(NewX, NewY) = 202 Then
+    Hero.AT = Hero.AT + 2 ^ (Floor \ 10)
+    Label3.Caption = Hero.AT
+Else
+    Hero.DF = Hero.DF + 2 ^ (Floor \ 10)
+    Label4.Caption = HeroDF
+End If
+Call SubWalk
+End Sub
+Private Sub SubGetKey()
+If MapBox(Floor)(NewX, NewY) = 204 Then
+    Key.YollowKey = Key.YollowKey + 1
+    Label5.Caption = Key.YollowKey
+ElseIf MapBox(Floor)(NewX, NewY) = 205 Then
+    Key.BlueKey = Key.BlueKey + 1
+    Label6.Caption = Key.BlueKey
+Else
+    Key.RedKey = Key.RedKey + 1
+    Label6.Caption = Key.RedKey
+End If
+Call SubWalk
+End Sub
+Private Sub SubOpenDoor()
+If MapBox(Floor)(NewX, NewY) = 300 Then
+    If Key.YollowKey = 0 Then
+        Label1.Caption = "缺少黄钥匙"
+    Else
+        Key.YollowKey = Key.YollowKey - 1
+        Label5.Caption = Key.YollowKey
+        Call SubWalk
+    End If
+ElseIf MapBox(Floor)(NewX, NewY) = 301 Then
+    If Key.BlueKey = 0 Then
+        Label1.Caption = "缺少蓝钥匙"
+    Else
+        Key.BlueKey = Key.BlueKey - 1
+        Label6.Caption = Key.BlueKey
+        Call SubWalk
+    End If
+    Else
+    If Key.RedKey = 0 Then
+        Label1.Caption = "缺少红钥匙"
+    Else
+        Key.RedKey = Key.RedKey - 1
+        Label7.Caption = Key.RedKey
+        Call SubWalk
+    End If
+End If
+End Sub
+Private Sub Image5_Click(Index As Integer)
+Open "D:/Tower/Save.txt" For Input As #1
+Form1.KeyPreview = False
+Frame5.Visible = True
+Dim s As String
+Input #1, s
+Command3(1).Caption = s
+Input #1, s
+Command3(2).Caption = s
+Input #1, s
+Command3(3).Caption = s
+Input #1, s
+Command3(4).Caption = s
+If Index <> 0 Then
+    Mark = 0
+ElseIf Index = 1 Then
+    Mark = 1
+End If
+Close
+End Sub
+
+Private Sub Timer1_Timer()
+Form1.KeyPreview = False
+Label8.Caption = Monster.Name
+Label10.Caption = Monster.AT
+Label11.Caption = Monster.DF
+Label12.Caption = Monster.Coin
+Label9.Caption = Monster.Hp
+Monster.Hp = Monster.Hp - (Hero.AT - Monster.DF)
+Hero.Hp = Hero.Hp - (Monster.AT - Hero.DF)
+Label13.Caption = Hero.Hp
+If Monster.Hp <= 10 Then
+Form1.KeyPreview = True
+Timer1.Interval = 0
+End If
+End Sub
+Public Sub SubGetMonsterData()
+Monster.Name = MonsterBox(MapBox(Floor)(NewX, NewY)).Name
+Monster.Hp = MonsterBox(MapBox(Floor)(NewX, NewY)).Hp
+Monster.AT = MonsterBox(MapBox(Floor)(NewX, NewY)).AT
+Monster.DF = MonsterBox(MapBox(Floor)(NewX, NewY)).DF
+Monster.Coin = MonsterBox(MapBox(Floor)(NewX, NewY)).Coin
+End Sub
+Private Sub SubGetMedicine()
+If MapBox(Floor)(NewX, NewY) = 200 Then
+Hero.Hp = Hero.Hp + 50 * 2 ^ (Floor \ 10)
+ElseIf MapBox(Floor)(NewX, NewY) = 201 Then
+Hero.Hp = Hero.Hp + 100 * 2 ^ (Floor \ 10)
+End If
+End Sub
+Private Sub SubShop()
+Form1.KeyPreview = False
+Frame4.Visible = True
+With Frame4
+    .Command1(1).Caption = "增加" & (2 ^ (Floor \ 10 + 1)) & "点攻击力"
+    .Command1(1).Caption = "增加" & (4 ^ (Floor \ 10 + 1)) & "点防御力"
+    .Command1(1).Caption = "增加" & (100 ^ (Floor \ 10 + 1)) & "点生命值"
+    .Label1.Caption = "花费" & (20 + 50 * Buy) & "金币获得以下一项属性"
+End With
+End Sub
+
+Private Sub Command1_click(Index As Integer)
+If Hero.Coin >= 20 + 50 * Buy Then
+Select Case Index
+    Case 1
+        Hero.AT = Hero.AT + 2 ^ (Floor \ 10 + 1)
+        Label5.Caption = Hero.AT
+    Case 2
+        Hero.DF = Hero.DF + 4 ^ (Floor \ 10 + 1)
+        Label7.Caption = Hero.DF
+    Case 3
+        Hero.Hp = Hero.Hp + 100 * 2 ^ (Floor \ 10 + 1)
+        Label3.Caption = Hero.Hp
+End Select
+    Hero.Coin = Hero.Coin - 20 - 50 * Buy
+    
+End Sub
+Private Sub SubSave(Index As Integer)
+Open "D:/Tower/Tower" & Index & ".txt" For Output As #1
+Open "D:/Tower/Save.txt" For Output As #2
+Dim s As String
+Dim save As String
+Write #1, Str(Hero.Hp)
+Write #1, Str(Hero.AT)
+Write #1, Str(Hero.DF)
+Write #1, Str(Hero.Coin)
+Write #1, Str(Hero.X)
+Write #1, Str(Hero.Y)
+
+Write #1, Str(Key.YollowKey)
+Write #1, Str(Key.BlueKey)
+Write #1, Str(Key.RedKey)
+
+Write #1, Str(Floor)
+Write #1, Str(Buy)
+Write #1, Str(Buy)
+
+For i = 1 To 1
+    For m = 1 To 9
+        For n = 1 To 9
+            If n <> 9 Then
+                s = s & MapBox(i)(m, n) & ","
+            Else
+                s = s & MapBox(i)(m, n)
+            End If
+        Next n
+        s = s & ";"
+    Next m
+    Write #1, s
+Next i
+
+Frame5.Visible = False
+For l = 1 To 4
+    If l = Index Then
+        Write #2, "1" 'Year(Now)年Month(Now)月Day(Now)日Hour(Now)时Minute(Now)分Second(Now)秒"
+    Else
+        save = Command3(Index).Caption
+        Write #2, save
+    End If
+Next l
+Form1.KeyPreview = True
+Frame5.Visible = False
+Close
+End Sub
+Private Sub SubReload(Index As Integer)
+Open "D:Tower/Tower" & Index & ".txt" For Input As #1
+Dim s As String
+Line Input #1, s
+Hero.Hp = Val(s)
+Line Input #1, s
+Hero.AT = Val(s)
+Line Input #1, s
+Hero.DF = Val(s)
+Line Input #1, s
+Hero.Coin = Val(s)
+Line Input #1, s
+Hero.X = Val(s)
+Line Input #1, s
+Hero.Y = Val(s)
+
+Line Input #1, s
+Key.YollowKey = Val(s)
+Line Input #1, s
+Key.BlueKey = Val(s)
+Line Input #1, s
+Key.RedKey = Val(s)
+
+Line Input #1, s
+Floor = Val(s)
+Line Input #1, s
+Buy = Val(s)
+
+For i = 1 To 1
+    Line Input #1, s
+    Call SubChangeMap(i, s)
+Next i
+Call SubDrawMap
+Call SubShowData
+    Frame5.Visible = False
+    Form1.KeyPreview = True
+Close
+End Sub
+
+Private Sub SubChangeMap(Floor As Integer, ByVal s As String)
+Dim sp() As String
+Dim spl() As String
+Dim L1 As Long, L2 As Long
+sp() = Split(s, ";", , vbTextCompare)
+For L1 = 0 To UBound(sp)
+    spl() = Split(sp(L1), ",", , vbTextCompare)
+    For L2 = 0 To UBound(spl)
+        MapBox(1)(L1 + 1, L2 + 1) = CLng(spl(L2))
+    Next L2
+Next L1
+End Sub
+Private Sub command3_click(Index As Integer)
+If Mark = 0 Then
+    Select Case Index
+    Case 1 To 4
+        Call SubSave(Index)
+    Case 5
+        Frame5.Visible = False
+        Form1.KeyPreview = True
+    End Select
+ElseIf Mark = 1 Then
+    Select Case Index
+    Case 1 To 4
+        'If Command3(Index).Caption <> "0" Then
+            Call SubReload(Index)
+        'End If
+    Case 5
+        Frame5.Visible = False
+        Form1.KeyPreview = True
+    End Select
+End If
+End Sub
+
+Private Sub SubShowData()
+Label3.Caption = Hero.Hp
+Label5.Caption = Hero.AT
+Label7.Caption = Hero.DF
+Label9.Caption = Hero.Coin
+Label20.Caption = Key.YollowKey
+Label21.Caption = Key.BlueKey
+Label22.Caption = Key.RedKey
+End Sub
